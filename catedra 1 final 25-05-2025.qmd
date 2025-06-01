@@ -1,0 +1,267 @@
+---
+title: "TRABAJO CATEDRA"
+author: "FERNANDO LOPEZ - CARLA ROJAS" alumnos Magister Data Science UDLA.
+format: pdf
+editor: visual
+---
+
+## **Análisis del comportamiento de las patologías psiquiátricas hospitalizadas en el Hospital Guillermo Grant Benavente entre 2018 y 2023: una revisión de tendencias diagnósticas, características sociodemográficas y resultados clínicos**
+
+### **Planteamiento del problema:**
+
+En los últimos diez años no se ha realizado una caracterización actualizada del perfil de hospitalizaciones en el servicio de psiquiatría del Hospital Guillermo Grant Benavente. Esta ausencia de datos actualizados limita la toma de decisiones clínicas, la planificación de recursos y el diseño de intervenciones preventivas.
+
+Contar con un análisis detallado de las patologías psiquiátricas que requieren hospitalización, sus frecuencias, duración de estancia, distribución etaria, diagnósticos principales y condiciones de egreso (vivo o fallecido) permitiría tener una visión más clara de la evolución del perfil clínico de los pacientes, especialmente considerando el impacto de eventos como la pandemia de COVID-19 en la salud mental.
+
+### **Pregunta de investigación:**
+
+¿Cómo se comportaron las patologías psiquiátricas hospitalizadas en el Hospital Guillermo Grant Benavente entre los años 2018 y 2023, considerando la frecuencia diagnóstica, edad de los pacientes, duración de las hospitalizaciones, unidad de hospitalización y condición de egreso?
+
+### **Objetivo general:**
+
+Analizar el comportamiento de las patologías psiquiátricas hospitalizadas en el Hospital Guillermo Grant Benavente durante el periodo 2018-2023, considerando variables clínicas y sociodemográficas disponibles.
+
+### **Objetivos específicos:**
+
+1.  Describir la frecuencia y distribución de los diagnósticos psiquiátricos hospitalizados por año.
+
+2.  Caracterizar la población hospitalizada según edad, diagnóstico y unidad de hospitalización.
+
+3.  Determinar la duración promedio de hospitalización y su variación en el tiempo.
+
+4.  Evaluar la condición de egreso de los pacientes y su asociación con las variables clínicas.
+
+### Proceso
+
+### **Selección de la patología a analizar**
+
+Dado el tamaño de la base de datos y la cantidad de información contenida, se optó por centrar el análisis en la patología de **depresión**. Esta enfermedad presenta una alta prevalencia a lo largo del ciclo vital, afectando tanto a adolescentes como a adultos, lo que permite disponer de un número considerable de casos para realizar un análisis representativo y robusto en el presente estudio.
+
+A continuación, se detalla el proceso metodológico seguido.
+
+```{r}
+#SE CARGA LIBRERIA TIDYVERSE
+library(tidyverse)
+```
+
+```{r}
+# SE CARGA BASE DE DATOS Y SE LE ASIGNA AL OBJETO "DATOS"
+datos <- read_csv2("C:/Users/HP/Desktop/BASE_PSQ.csv")
+
+```
+
+```{r}
+# explorar estructura basica del data set
+glimpse(datos)
+
+summary(datos)
+
+str(datos)
+```
+
+```{r}
+#exploracion de primeros y ultimos datos de la base
+head(datos)
+tail(datos)
+```
+
+```{r}
+#verificacion de datos faltantes 
+colSums(is.na(datos))
+```
+
+### Exploración de datos con ggplot 2
+
+```{r}
+names(datos)
+
+```
+
+```{r}
+
+ # Filtrar diagnósticos que contienen "depresión" o "depresivo"
+# y excluir los que mencionan "antipsicótico" o "antipsicotico"
+BASE_PSQ_FILTRADO <- datos %>%
+  filter(
+    str_detect(tolower(DIAGNOSTICO_EGRESO), "depresión|depresivo"),
+    !str_detect(tolower(DIAGNOSTICO_EGRESO), "antipsicótico|antipsicotico")
+  )
+
+# Ver resultados
+view(BASE_PSQ_FILTRADO)
+```
+
+```{r}
+#se visualiza los datos de la base filtrada con dg de interes
+glimpse(BASE_PSQ_FILTRADO)
+summary(BASE_PSQ_FILTRADO)
+```
+
+```{r}
+#clasificacion de los datos
+unique(BASE_PSQ_FILTRADO$SEXO)
+unique(BASE_PSQ_FILTRADO$RANGO_ETAREO)
+unique(BASE_PSQ_FILTRADO$UNIDAD_EGRESO)
+```
+
+```{r}
+#genero histograma para ver distribucion de la edad
+ggplot(BASE_PSQ_FILTRADO, aes(x = as.numeric(EDAD))) +
+  geom_histogram(binwidth = 5, fill = "#00BFC4", color = "black") +
+  labs(title = "Distribución de la Edad", x = "Edad", y = "Frecuencia")
+```
+
+### Análisis
+
+Hay un alto número de pacientes adolescentes y jóvenes, con más de 100 hospitalizaciones en este grupo. Esto indica que el grupo más afectado corresponde a personas menores de 20 años.
+
+Se observa una disminución pronunciada después de los 20 años,a medida que aumenta la edad, la frecuencia de hospitalizaciones disminuye notablemente. Se estabiliza a un nivel bajo y regular entre los 30 y 70 años.
+
+Se observa un ligero aumento en las hospitalizaciones en adultos mayores, aunque muy por debajo del grupo adolescente.
+
+```{r}
+#SE CREO LA COLUMNA PERIODO SEGUN AÑO EGRESO , EN PREPANDEMIA, PANDEMIA Y POST PANDEMIA
+BASE_PSQ_FILTRADO <- BASE_PSQ_FILTRADO %>%
+  mutate(
+    PERIODO = case_when(
+      AÑO_EGRESO %in% 2018:2019 ~ "prepandemia",
+      AÑO_EGRESO %in% 2020:2022 ~ "pandemia",
+      AÑO_EGRESO == 2023 ~ "postpandemia",
+      TRUE ~ "otro"
+    )
+  )
+```
+
+```{r}
+#SE CREA GRAFICO PARA VISUALIZAR LA RELACÓN DE LA EDAD SEGUN PERIODO
+ggplot(BASE_PSQ_FILTRADO, aes(x = PERIODO, y = as.numeric(EDAD), fill = PERIODO)) +
+  geom_boxplot() +
+  labs(title = "Relación de la Edad por Periodo", x = "Periodo", y = "Edad") +
+  theme_minimal()
+  
+```
+
+### Análisis
+
+Existe una estabilidad en la edad mediana, lo que sugiere que el perfil etario del paciente típico no cambió demasiado a pesar del impacto de la pandemia.
+
+Existe una Mayor dispersión de la edad en la prepandemia lo que podría indicar un acceso más amplio al servicio de Psiquiatría en términos etarios, o una política diferente de admisión debido a que durante la pandemia, y según las indicaciones ministeriales , se exigían mayores requisitos como PCR negativa entre otros factores.
+
+\
+
+```{r}
+#se va graficar la relacion de casos por año y sexo
+ggplot(BASE_PSQ_FILTRADO, aes(x = factor(AÑO_EGRESO), fill = SEXO)) + 
+  geom_bar(position = "fill") +
+  labs(title = "Relacion de casos entre Año y Sexo" , x = "Año de Egreso" , y = "Relación") + theme_minimal()
+```
+
+### Análisis
+
+El gráfico muestra la proporción de egresos hospitalarios en psiquiatría según sexo entre los años 2018 y 2023.
+
+Se observa que:
+
+Las mujeres representan consistentemente la mayor proporción de egresos en todos los años.
+
+Durante la pandemia (2020–2022), esta diferencia se acentuó.
+
+En 2023, la proporción de hombres aumentó, acercándose nuevamente a la distribución observada en 2018.
+
+```{r}
+# se va a graficar la relacíon  de casos entre sexo y periodo
+ggplot(BASE_PSQ_FILTRADO, aes(x = factor(SEXO), fill = PERIODO)) + 
+  geom_bar(position = "fill") +
+  labs(title = "Proporción de casos por Año y Sexo" , x = "Año de Egreso" , y = "Proporción") + theme_minimal()
+
+
+```
+
+### Análisis
+
+**Distribución prepandemia (azul)**:
+
+Similar en ambos sexos (\~35–40%), lo que indica que antes del COVID-19, la distribución de casos estaba balanceada entre hombres y mujeres.
+
+**Durante pandemia (rojo):**
+
+La proporción de mujeres hospitalizadas aumentó significativamente en comparación con los hombres.
+
+Esto sugiere que la pandemia afectó más a las mujeres en términos de salud mental, lo que es consistente con estudios que muestran mayor impacto psicológico en mujeres durante confinamientos y crisis sociales.
+
+**Postpandemia (verde):**
+
+Aumenta claramente en hombres (más de 30%), mientras que en mujeres se mantiene bajo (\~20%).
+
+Esto puede indicar una recuperación más lenta del bienestar mental en varones, o un incremento en hospitalizaciones masculinas postcrisis.
+
+El gráfico muestra que, si bien ambos sexos presentan una distribución relativamente homogénea en el periodo prepandemia, durante la pandemia se observa un mayor porcentaje de hospitalizaciones femeninas. En el periodo postpandemia, en cambio, esta proporción se invierte parcialmente, aumentando los egresos en pacientes masculinos. Esta variabilidad en la carga por sexo y periodo temporal sugiere diferencias importantes en cómo afectó la pandemia a hombres y mujeres en su salud mental y en su acceso o necesidad de hospitalizacion.
+
+```{r}
+#genero gráfico de barras para ver distribucion de la edad
+ggplot(BASE_PSQ_FILTRADO, aes(x = SEXO, fill = SEXO)) +
+  geom_bar(color = "black") +
+  labs(title = "Distribución de pacientes según Sexo",
+       x = "Sexo",
+       y = "Frecuencia") +
+  theme_minimal()
+
+```
+
+### Análisis
+
+El gráfico muestra la distribución de los pacientes hospitalizados por sexo en el Servicio de Psiquiatría entre 2018 y 2023. Se observa una mayor proporción de hospitalizaciones en mujeres, quienes representan más del doble de los casos respecto a los hombres. Esta diferencia podría reflejar tanto una mayor prevalencia de diagnostico de depresión en mujeres, como también una mayor propensión a buscar o recibir atención especializada.
+
+```{r}
+# Se grafica la distribución de sexo, por cada año
+
+ggplot(BASE_PSQ_FILTRADO, aes(x = SEXO, fill = SEXO)) +
+  geom_bar(color = "black") +
+  facet_wrap(~ AÑO_EGRESO) +
+  labs(title = "Distribución de pacientes por Sexo y Año de Egreso",
+       x = "Sexo",
+       y = "Frecuencia") +
+  theme_minimal()
+
+```
+
+### Análisis
+
+El gráfico muestra la evolución de la distribución por sexo en las hospitalizaciones psiquiátricas entre 2018 y 2023. Durante los años previos y durante la pandemia, se observa una clara predominancia del sexo femenino, con una diferencia muy marcada en 2019 y sostenida hasta 2022.
+
+Sin embargo, en el año 2023, esta tendencia cambia, con una igualación notable en el número de hospitalizaciones entre hombres y mujeres. Esto podría reflejar un cambio en el impacto de los determinantes psicosociales post-pandemia o en el acceso a los servicios de salud mental.
+
+```{r}
+# Se grafica la distribución de sexo, por cada periodo "prepandemia", "Pandemia" y "postpandemia"
+
+ggplot(BASE_PSQ_FILTRADO, aes(x = SEXO, fill = SEXO)) +
+  geom_bar(color = "black") +
+  facet_wrap(~ PERIODO) +
+  labs(title = "Distribución de pacientes por Sexo y Periodo",
+       x = "Sexo",
+       y = "Frecuencia") +
+  theme_minimal()
+
+```
+
+### Análisis
+
+El gráfico refleja cómo la distribución de hospitalizaciones psiquiátricas por sexo varía según el contexto epidemiológico. Durante la pandemia, se observa una marcada sobrerrepresentación femenina, lo que podría deberse a una mayor vulnerabilidad psicosocial en mujeres frente a los efectos del confinamiento, la sobrecarga de cuidados o el impacto emocional.
+
+En el periodo postpandemia, la proporción de hospitalizaciones se equilibra entre hombres y mujeres, sugiriendo un cambio importante en los patrones de atención o necesidad de hospitalización.
+
+Comparado con la prepandemia, la pandemia produjo una ruptura del patrón previo, acentuando la brecha de género, la cual se regulariza tras la crisis.
+
+## Conclusiones
+
+El presente análisis permitió caracterizar la evolución de las hospitalizaciones por depresión en el Servicio de Psiquiatría del Hospital Guillermo Grant Benavente entre los años 2018 y 2023, revelando patrones significativos en términos de edad, sexo y contexto epidemiológico.
+
+1-Alta carga en adolescentes y adultos jóvenes: La mayor proporción de hospitalizaciones se concentró en personas menores de 20 años, lo que evidencia la creciente afectación de la salud mental en la población joven. Esta tendencia refuerza la necesidad de estrategias preventivas y de atención temprana en este grupo etario.
+
+2-Predominio femenino en hospitalizaciones por depresión: Se observó una sobrerrepresentación constante del sexo femenino en todos los años analizados, con un aumento más marcado durante el periodo de pandemia. Este hallazgo es consistente con estudios previos que indican una mayor prevalencia de trastornos depresivos en mujeres y sugiere una mayor vulnerabilidad psicosocial frente a contextos de crisis.
+
+3-Efecto de la pandemia en los perfiles de atención: Durante la pandemia de COVID-19, se evidenció una reducción en la dispersión etaria y una mayor concentración de hospitalizaciones en mujeres. Estos cambios podrían explicarse por restricciones de acceso, modificaciones en los criterios de admisión o una mayor necesidad de atención en ciertos grupos poblacionales.
+
+4-Tendencia a la reequilibración postpandemia: En el año 2023, se observó una tendencia hacia la igualación entre sexos en las hospitalizaciones, lo que podría reflejar una recuperación parcial del sistema de salud mental y un reequilibrio en la demanda de atención entre hombres y mujeres.
+
+5-Utilidad del enfoque longitudinal: Analizar los datos a lo largo de seis años permitió detectar variaciones relevantes asociadas a eventos externos como la pandemia, y resalta la importancia de mantener registros sistemáticos para la planificación en salud pública.
